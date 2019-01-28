@@ -4,6 +4,12 @@
 #include "Particle.h"
 
 #define VDW_MCP23017_DEBUG_ENABLED 1
+#define VDW_MCP23017_LOOP_TIMER_ENABLED 1
+
+#define bitRead(value, bit) (((value) >> (bit)) & 0x01)
+#define bitSet(value, bit) ((value) |= (1UL << (bit)))
+#define bitClear(value, bit) ((value) &= ~(1UL << (bit)))
+#define bitWrite(value, bit, bitvalue) (bitvalue ? bitSet(value, bit) : bitClear(value, bit))
 
 enum {
     GPA0,
@@ -38,9 +44,9 @@ class VDW_MCP23017{
 
             // Initialize Pins
             for(uint8_t i=0; i<2; i++){
-                writeRegister(MCP23017_IODIR[i], _currentReg[i].IODIR, _currentReg[i].IODIR);
-                writeRegister(MCP23017_GPPU[i], _currentReg[i].GPPU, _currentReg[i].GPPU);
-                writeRegister(MCP23017_GPIO[i], _currentReg[i].GPIO, _currentReg[i].GPIO);
+                writeRegister(MCP23017_IODIR[i], _reg[i].IODIR);
+                writeRegister(MCP23017_GPPU[i], _reg[i].GPPU);
+                writeRegister(MCP23017_GPIO[i], _reg[i].GPIO);
             }
             _initialized = true;
         }
@@ -107,13 +113,13 @@ class VDW_MCP23017{
         };
 
         int16_t readRegister(uint8_t reg, uint8_t bytes=1);
-        bool writeRegister(uint8_t reg, uint8_t data, uint8_t &localReg);
+        bool writeRegister(uint8_t reg, uint8_t data);
         PORT getPort(uint8_t pin);
 
-        uint8_t bitRead(uint8_t value, uint8_t bit) { return ((value) >> (bit)) & 0x01; }
-        uint8_t bitSet(uint8_t value, uint8_t bit) { return (value) |= (1UL << (bit)); }
-        uint8_t bitClear(uint8_t value, uint8_t bit) { return (value) &= ~(1UL << (bit)); }
-        uint8_t bitWrite(uint8_t value, uint8_t bit, bool bitvalue) { return bitvalue ? bitSet(value, bit) : bitClear(value, bit); }
+        // uint8_t bitRead(uint8_t value, uint8_t bit) { return ((value) >> (bit)) & 0x01; }
+        // uint8_t bitSet(uint8_t value, uint8_t bit) { return (value) |= (1UL << (bit)); }
+        // uint8_t bitClear(uint8_t value, uint8_t bit) { return (value) &= ~(1UL << (bit)); }
+        // uint8_t bitWrite(uint8_t value, uint8_t bit, bool bitvalue) { return bitvalue ? bitSet(value, bit) : bitClear(value, bit); }
 
         // returns true if the new setting does not match the current setting of the pin
         bool pinShouldChange(uint8_t pin, uint8_t reg, bool newState);
@@ -153,7 +159,7 @@ class VDW_MCP23017{
             uint8_t INTCAP = 0x00;
             uint8_t GPIO = 0x00;
             uint8_t OLAT = 0x00;
-            bool writeReg[10] = {0};
+            uint16_t writeReg = 0x0000;
         } _reg[2];
 
 
