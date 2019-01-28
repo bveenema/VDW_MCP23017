@@ -22,7 +22,7 @@ enum {
     GPB5,
     GPB6,
     GPB7,
-} MCP23017_Pins;
+};
 
 class VDW_MCP23017{
     public:
@@ -130,6 +130,18 @@ class VDW_MCP23017{
         bool _requestReset = false;
 
         // Register Settings
+        enum {
+            IODIR,
+            IPOL,
+            GPINTEN,
+            DEFVAL,
+            INTCON,
+            GPPU,
+            INTF,
+            INTCAP,
+            GPIO,
+            OLAT,
+        };
         struct {
             uint8_t IODIR = 0xFF;
             uint8_t IPOL = 0x00;
@@ -141,7 +153,9 @@ class VDW_MCP23017{
             uint8_t INTCAP = 0x00;
             uint8_t GPIO = 0x00;
             uint8_t OLAT = 0x00;
-        } _currentReg[2], _newReg[2];
+            bool writeReg[10] = {0};
+        } _reg[2];
+
 
         // MCP23017 Control Registers
         const uint8_t MCP23017_IODIR[2] = {0x00, 0x01}; // I/O Direction Register (~1: INPUT, 0: OUTPUT)

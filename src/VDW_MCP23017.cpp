@@ -14,11 +14,12 @@ bool VDW_MCP23017::setMode(uint8_t pin, bool mode, bool pullup){
 	#endif
 
 	// Determine if requested mode different from current
-    if(pinShouldChange(pin, _currentReg[port].IODIR, mode)){
+    if(pinShouldChange(pin, _reg[port].IODIR, mode)){
 		#ifdef VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tRequesting Mode Change");
 		#endif
-		_newReg[port].IODIR = bitWrite(_currentReg[port].IODIR, pin%8, mode);
+		_reg[port].IODIR = bitWrite(_reg[port].IODIR, pin%8, mode);
+		_reg[port].writeReg[IODIR] = 1;
         _writeRequested = true;
 		returnVal = true;
     }
@@ -27,11 +28,12 @@ bool VDW_MCP23017::setMode(uint8_t pin, bool mode, bool pullup){
 	#endif
 
 	// Determine if requested pullup different from current
-    if(pinShouldChange(pin, _currentReg[port].GPPU, pullup)){
+    if(pinShouldChange(pin, _reg[port].GPPU, pullup)){
 		#ifdef VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tRequesting Pullup Change");
 		#endif
-		_newReg[port].GPPU = bitWrite(_currentReg[port].GPPU, pin%8, pullup);
+		_reg[port].GPPU = bitWrite(_reg[port].GPPU, pin%8, pullup);
+		_reg[port].writeReg[GPPU] = 1;
         _writeRequested = true;
 		returnVal = true;
     }
@@ -53,19 +55,20 @@ bool VDW_MCP23017::writePin(uint8_t pin, bool dir){
 	#endif
 
 	// Determine if the pin is an OUTPUT (Can't write an INPUT)
-	if(bitRead(_currentReg[port].IODIR, pin%8) && bitRead(_newReg[port].IODIR, pin%8)){
+	if(bitRead(_reg[port].IODIR, pin%8) && bitRead(_reg[port].IODIR, pin%8)){
 		#ifdef VDW_MCP23017_DEBUG_ENABLED
-			Serial.printlnf("\tPin is INPUT: %d, %d",bitRead(_currentReg[port].IODIR, pin%8), bitRead(_newReg[port].IODIR, pin%8));
+			Serial.printlnf("\tPin is INPUT: %d, %d",bitRead(_reg[port].IODIR, pin%8), bitRead(_reg[port].IODIR, pin%8));
 		#endif
 		return false;
 	}
 
 	// Determine if requested setting different from current
-    if(pinShouldChange(pin, _currentReg[port].OLAT, dir)){
+    if(pinShouldChange(pin, _reg[port].OLAT, dir)){
 		#ifdef VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tRequesting Change");
 		#endif
-		_newReg[port].OLAT = bitWrite(_currentReg[port].OLAT, pin%8, dir);
+		_reg[port].OLAT = bitWrite(_reg[port].OLAT, pin%8, dir);
+		_reg[port].writeReg[OLAT] = 1;
         _writeRequested = true;
 		return true;
     }
@@ -87,7 +90,7 @@ bool VDW_MCP23017::writePinNow(uint8_t pin, bool dir){
 	#endif
 
 	// Determine if the pin is an output (Can't write an input)
-	if(bitRead(_currentReg[port].IODIR, pin%8) == 1){
+	if(bitRead(_reg[port].IODIR, pin%8) == 1){
 		#ifdef VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tPin is INPUT");
 		#endif
@@ -95,12 +98,12 @@ bool VDW_MCP23017::writePinNow(uint8_t pin, bool dir){
 	}
 
 	// Determine if requested setting different from current
-    if(pinShouldChange(pin, _currentReg[port].OLAT, dir)){
+    if(pinShouldChange(pin, _reg[port].OLAT, dir)){
 		#ifdef VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tWriting Pin");
 		#endif
-		_newReg[port].OLAT = bitWrite(_currentReg[port].OLAT, pin%8, dir);
-		if(writeRegister(MCP23017_OLAT[port], _newReg[port].OLAT, _currentReg[port].OLAT)) return true;
+		_reg[port].OLAT = bitWrite(_reg[port].OLAT, pin%8, dir);
+		if(writeRegister(MCP23017_OLAT[port], _reg[port].OLAT, _reg[port].OLAT)) return true;
     }
 	#ifdef VDW_MCP23017_DEBUG_ENABLED
 		else Serial.printlnf("\tNO CHANGE", port);
@@ -119,7 +122,7 @@ bool VDW_MCP23017::readPin(uint8_t pin){
 		Serial.printlnf("\tPORT: %d", port);
 	#endif
 
-	return bitRead(_currentReg[port].GPIO, pin%8);
+	return bitRead(_reg[port].GPIO, pin%8);
 }
 
 bool VDW_MCP23017::readPinNow(uint8_t pin){
@@ -155,8 +158,8 @@ void VDW_MCP23017::update(){
 				Serial.printlnf("GPIO Read Failed: %d, %d",gpioA, gpioB);
 			#endif
 		} else {
-			_currentReg[PORTA].GPIO = gpioA;
-			_currentReg[PORTB].GPIO = gpioB;
+			_reg[PORTA].GPIO = gpioA;
+			_reg[PORTB].GPIO = gpioB;
 			_readRequested = false;
 		}
 		_readRequested = false;
@@ -166,13 +169,17 @@ void VDW_MCP23017::update(){
     if(_writeRequested){
 		bool success = true;
 		for(uint8_t i=0; i<2; i++){
-			if(_currentReg[i].IODIR != _newReg[i].IODIR) 		success &= writeRegister(MCP23017_IODIR[i], _newReg[i].IODIR, _currentReg[i].IODIR);
-			if(_currentReg[i].IPOL != _newReg[i].IPOL) 			success &= writeRegister(MCP23017_IPOL[i], _newReg[i].IPOL, _currentReg[i].IPOL);
-			if(_currentReg[i].GPINTEN != _newReg[i].GPINTEN) 	success &= writeRegister(MCP23017_GPINTEN[i], _newReg[i].GPINTEN, _currentReg[i].GPINTEN);
-			if(_currentReg[i].DEFVAL != _newReg[i].DEFVAL) 		success &= writeRegister(MCP23017_DEFVAL[i], _newReg[i].DEFVAL, _currentReg[i].DEFVAL);
-			if(_currentReg[i].INTCON != _newReg[i].INTCON) 		success &= writeRegister(MCP23017_INTCON[i], _newReg[i].INTCON, _currentReg[i].INTCON);
-			if(_currentReg[i].GPPU != _newReg[i].GPPU) 			success &= writeRegister(MCP23017_GPPU[i], _newReg[i].GPPU, _currentReg[i].GPPU);
-			if(_currentReg[i].OLAT != _newReg[i].OLAT) 			success &= writeRegister(MCP23017_OLAT[i], _newReg[i].OLAT, _currentReg[i].OLAT);
+			if(_reg[i].writeReg[IODIR]) success &= 
+		}
+
+		for(uint8_t i=0; i<2; i++){
+			if(_reg[i].IODIR != _reg[i].IODIR) 		success &= writeRegister(MCP23017_IODIR[i], _reg[i].IODIR, _reg[i].IODIR);
+			if(_reg[i].IPOL != _reg[i].IPOL) 			success &= writeRegister(MCP23017_IPOL[i], _reg[i].IPOL, _reg[i].IPOL);
+			if(_reg[i].GPINTEN != _reg[i].GPINTEN) 	success &= writeRegister(MCP23017_GPINTEN[i], _reg[i].GPINTEN, _reg[i].GPINTEN);
+			if(_reg[i].DEFVAL != _reg[i].DEFVAL) 		success &= writeRegister(MCP23017_DEFVAL[i], _reg[i].DEFVAL, _reg[i].DEFVAL);
+			if(_reg[i].INTCON != _reg[i].INTCON) 		success &= writeRegister(MCP23017_INTCON[i], _reg[i].INTCON, _reg[i].INTCON);
+			if(_reg[i].GPPU != _reg[i].GPPU) 			success &= writeRegister(MCP23017_GPPU[i], _reg[i].GPPU, _reg[i].GPPU);
+			if(_reg[i].OLAT != _reg[i].OLAT) 			success &= writeRegister(MCP23017_OLAT[i], _reg[i].OLAT, _reg[i].OLAT);
 		}
 		if(success) _writeRequested = false;
 		#if VDW_MCP23017_DEBUG_ENABLED
@@ -183,7 +190,7 @@ void VDW_MCP23017::update(){
 	// All comms completed sucessfully, reset and do it again
 	if(!_writeRequested && ! _readRequested){
 		attemptsMade = 0;
-		if(_currentReg[0].IODIR != 0x00 && _currentReg[1].IODIR != 0x00) _readRequested = true;
+		if(_reg[0].IODIR != 0x00 && _reg[1].IODIR != 0x00) _readRequested = true;
 	} else {
 		attemptsMade++;
 	}
