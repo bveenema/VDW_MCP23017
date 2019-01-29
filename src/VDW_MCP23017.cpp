@@ -157,6 +157,11 @@ void VDW_MCP23017::update(){
 
 	static uint8_t attemptsMade = 0;
     // Check for Interrupts
+	if(_interrupt || digitalRead(_interruptPin)){
+		#if VDW_MCP23017_DEBUG_ENABLED
+			Serial.println("Interrupt Detected:");
+		#endif
+	}
 
     // Read all Inputs
 	if(_readRequested){
@@ -180,10 +185,10 @@ void VDW_MCP23017::update(){
 		for(uint8_t i=0; i<2; i++){
 			if(bitRead(_reg[i].writeReg, IODIR	)) 	bitWrite(_reg[i].writeReg, 	IODIR, 		!writeRegister(MCP23017_IODIR[i], 	_reg[i].IODIR));
 			if(bitRead(_reg[i].writeReg, IPOL	)) 	bitWrite(_reg[i].writeReg, 	IPOL, 		!writeRegister(MCP23017_IPOL[i], 	_reg[i].IPOL));
-			if(bitRead(_reg[i].writeReg, GPINTEN)) 	bitWrite(_reg[i].writeReg, 	GPINTEN, 	!writeRegister(MCP23017_GPINTEN[i], 	_reg[i].GPINTEN));
+			if(bitRead(_reg[i].writeReg, GPINTEN)) 	bitWrite(_reg[i].writeReg, 	GPINTEN, 	!writeRegister(MCP23017_GPINTEN[i], _reg[i].GPINTEN));
 			if(bitRead(_reg[i].writeReg, DEFVAL	)) 	bitWrite(_reg[i].writeReg, 	DEFVAL, 	!writeRegister(MCP23017_DEFVAL[i], 	_reg[i].DEFVAL));
 			if(bitRead(_reg[i].writeReg, INTCON	)) 	bitWrite(_reg[i].writeReg, 	INTCON, 	!writeRegister(MCP23017_INTCON[i], 	_reg[i].INTCON));
-			if(bitRead(_reg[i].writeReg, GPPU	)) 	bitWrite(_reg[i].writeReg, 	GPPU, 		!writeRegister(MCP23017_GPPU[i],		_reg[i].GPPU));
+			if(bitRead(_reg[i].writeReg, GPPU	)) 	bitWrite(_reg[i].writeReg, 	GPPU, 		!writeRegister(MCP23017_GPPU[i],	_reg[i].GPPU));
 			if(bitRead(_reg[i].writeReg, OLAT	)) 	bitWrite(_reg[i].writeReg, 	OLAT, 		!writeRegister(MCP23017_OLAT[i], 	_reg[i].OLAT));
 		}
 		if(_reg[PORTA].writeReg == 0 && _reg[PORTB].writeReg == 0) _writeRequested = false;
@@ -195,7 +200,7 @@ void VDW_MCP23017::update(){
 	// All comms completed sucessfully, reset and do it again
 	if(!_writeRequested && ! _readRequested){
 		attemptsMade = 0;
-		if(_reg[0].IODIR != 0x00 && _reg[1].IODIR != 0x00) _readRequested = true;
+		if(!_interruptMode && _reg[0].IODIR != 0x00 && _reg[1].IODIR != 0x00) _readRequested = true;
 	} else {
 		attemptsMade++;
 	}
@@ -210,6 +215,14 @@ void VDW_MCP23017::update(){
 	#if VDW_MCP23017_LOOP_TIMER_ENABLED
 		Serial.printlnf("\t\t\t\tUpdate Cycle Time: %d", micros() - loopTimer);
 	#endif
+}
+
+bool VDW_MCP23017::configureInterrupts(bool mirror, bool odr, bool intpol){
+	bitWrite(_regIOCON, MIRROR, mirror);
+	bitWrite(_regIOCON, ODR, odr);
+	bitWrite(_regIOCON, INTPOL, intpol);
+
+	return writeRegister(MCP23017_IOCON, _regIOCON);
 }
 
 // readRegister and writeRegister are only functions directly tied Particle Ecosystem, except for millis() calls

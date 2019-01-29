@@ -42,7 +42,7 @@ class VDW_MCP23017{
                 Wire.begin();
             }
 
-            // Initialize Pins
+            // Initialize Registers
             for(uint8_t i=0; i<2; i++){
                 writeRegister(MCP23017_IODIR[i], _reg[i].IODIR);
                 writeRegister(MCP23017_GPPU[i], _reg[i].GPPU);
@@ -85,12 +85,29 @@ class VDW_MCP23017{
         // requesting a reset of the device.
         void update();
 
+        // Sets the interrupt related bits in IOCON (writes immediately)
+        // Returns true if write is successful
+        bool configureInterrupts(bool mirror = true, bool odr = true, bool intpol = false);
+
+        // Turn on or off Interrupt Mode. In interrupt mode, input pins will not be polled during every update()
+        // loop, saving processor time when nothing is changing.
+        // CAUTION: input pins not set as interrupt will be ignored
+        void enableInterruptMode(bool enable = true){
+            _interruptMode = enable;
+        }
+
+        bool setInterrupt(uint8_t pin, uint8_t mode);
+
+        bool disableInterrupt(uint8_t pin);
+
         // Signals the update() loop that an interrupt was recieved
         // If an interrupt pin is supplied to the object in the constructor, this class will automagically
         // check for interrupts in the update() function. This method is useful if an interrupt pin cannot be
-        // supplied to the object in order to inform the it of an interrupt.
+        // supplied to the object in order to inform the object of an interrupt.
         // Interrupt will not be handled until the next update() call. 
-        void interrupt(bool interrupt = true);
+        void interrupt(bool interrupt = true){
+            _interrupt = interrupt;
+        }
 
         // Returns true if there is an error with the MCP23017 that requires a reset.
         // Reset of the I2C device is handled by the controlling loop so that multiple I2C devices
@@ -134,6 +151,8 @@ class VDW_MCP23017{
         bool _writeRequested = false;
         bool _readRequested = false;
         bool _requestReset = false;
+        bool _interruptMode = false;
+        bool _interrupt = false;
 
         // Register Settings
         enum {
@@ -148,6 +167,7 @@ class VDW_MCP23017{
             GPIO,
             OLAT,
         };
+
         struct {
             uint8_t IODIR = 0xFF;
             uint8_t IPOL = 0x00;
@@ -162,6 +182,8 @@ class VDW_MCP23017{
             uint16_t writeReg = 0x0000;
         } _reg[2];
 
+        uint8_t _regIOCON = 0x00;
+
 
         // MCP23017 Control Registers
         const uint8_t MCP23017_IODIR[2] = {0x00, 0x01}; // I/O Direction Register (~1: INPUT, 0: OUTPUT)
@@ -175,6 +197,18 @@ class VDW_MCP23017{
         const uint8_t MCP23017_INTCAP[2] = {0x10, 0x11}; // Interupt Capture Reg (Value of GPIO at time of interrupt)
         const uint8_t MCP23017_GPIO[2] = {0x12, 0x13}; // Gen Purp I/O Reg (1: Logic High ~0: Logic Low)
         const uint8_t MCP23017_OLAT[2] = {0x14, 0x15}; // Output Latch Reg (1: Logic High ~0: Logic Low)
+
+        // IOCON Bits
+        enum {
+            Unimplemented,
+            INTPOL,
+            ODR,
+            HAEN,
+            DISSLW,
+            SEQOP,
+            MIRROR,
+            BANK
+        };
 };
 
 #endif
