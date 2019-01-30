@@ -7,6 +7,9 @@ bool VDW_MCP23017::setMode(uint8_t pin, bool mode, bool pullup){
 
 	bool returnVal = false;
 
+	// Invert mode (INPUT is 1 on MCP23017 and 0 in Particle/Wiring Ecosystem)
+	mode = !mode;
+
 	// determine the PORT
 	PORT port = getPort(pin);
 	#ifdef VDW_MCP23017_DEBUG_ENABLED
@@ -36,6 +39,59 @@ bool VDW_MCP23017::setMode(uint8_t pin, bool mode, bool pullup){
 		bitSet(_reg[port].writeReg, GPPU);
         _writeRequested = true;
 		returnVal = true;
+    }
+	#ifdef VDW_MCP23017_DEBUG_ENABLED
+		else Serial.printlnf("\tNO Pullup Change");
+	#endif
+	return returnVal;
+}
+
+bool VDW_MCP23017::setModeNow(uint8_t pin, bool mode, bool pullup){
+	#ifdef VDW_MCP23017_DEBUG_ENABLED
+		Serial.printlnf("Set Mode NOW:\n\tPin: %d\n\tMode: %d\n\tPull-up: %d",pin, mode, pullup);
+	#endif
+
+	bool returnVal = false;
+
+	// Invert mode (INPUT is 1 on MCP23017 and 0 in Particle/Wiring Ecosystem)
+	mode = !mode;
+
+	// determine the PORT
+	PORT port = getPort(pin);
+	#ifdef VDW_MCP23017_DEBUG_ENABLED
+		Serial.printlnf("\tPORT: %d", port);
+	#endif
+
+	// Determine if requested mode different from current
+    if(pinShouldChange(pin, _reg[port].IODIR, mode)){
+		#ifdef VDW_MCP23017_DEBUG_ENABLED
+			Serial.printlnf("\tRequesting Mode Change");
+		#endif
+		_reg[port].IODIR = bitWrite(_reg[port].IODIR, pin%8, mode);
+		if(writeRegister(MCP23017_IODIR[port], _reg[port].IODIR)){
+			returnVal = true;
+		} else {
+			bitSet(_reg[port].writeReg, IODIR);
+			_writeRequested = true;
+		}
+    }
+	#ifdef VDW_MCP23017_DEBUG_ENABLED
+		else Serial.printlnf("\tNO Mode Change Mode:%d, Reg: %d", mode, bitRead(_reg[port].IODIR, pin%8));
+	#endif
+
+
+	// Determine if requested pullup different from current
+    if(pinShouldChange(pin, _reg[port].GPPU, pullup)){
+		#ifdef VDW_MCP23017_DEBUG_ENABLED
+			Serial.printlnf("\tRequesting Pullup Change");
+		#endif
+		_reg[port].GPPU = bitWrite(_reg[port].GPPU, pin%8, pullup);
+		if(writeRegister(MCP23017_GPPU[port], _reg[port].IODIR)){
+			returnVal = true;
+		} else{
+			bitSet(_reg[port].writeReg, GPPU);
+        	_writeRequested = true;
+		}
     }
 	#ifdef VDW_MCP23017_DEBUG_ENABLED
 		else Serial.printlnf("\tNO Pullup Change");
@@ -128,12 +184,18 @@ bool VDW_MCP23017::readPin(uint8_t pin){
 		Serial.printlnf("\tPORT: %d", port);
 	#endif
 
-	return bitRead(_reg[port].GPIO, pin%8);
+	#ifdef VDW_MCP23017_DEBUG_ENABLED
+		bool value = bitRead(_reg[port].GPIO, pin%8);
+		Serial.printlnf("\tValue: %d",value);
+		return value;
+	#elif
+		return bitRead(_reg[port].GPIO, pin%8);
+	#endif
 }
 
 bool VDW_MCP23017::readPinNow(uint8_t pin){
 	#ifdef VDW_MCP23017_DEBUG_ENABLED
-		Serial.printlnf("Read Pin NOW:\n\tPin: %d\n\tDir: %d",pin);
+		Serial.printlnf("Read Pin NOW:\n\tPin: %d",pin);
 	#endif
 
 	// Determine the port
@@ -143,7 +205,81 @@ bool VDW_MCP23017::readPinNow(uint8_t pin){
 	#endif
 
 	// Get the value of the pin
-	return bitRead(readRegister(MCP23017_GPIO[port], 1), pin%8);
+	#ifdef VDW_MCP23017_DEBUG_ENABLED
+		_reg[port].GPIO = readRegister(MCP23017_GPIO[port], 1);
+		bool value = bitRead(_reg[port].GPIO, pin%8);
+		Serial.printlnf("\tValue: %d",value);
+		return value;
+	#elif
+		_reg[port].GPIO = readRegister(MCP23017_GPIO[port], 1)
+		return bitRead(_reg[port].GPIO, pin%8);
+	#endif
+}
+
+bool VDW_MCP23017::setInterrupt(uint8_t pin, uint8_t mode){
+	#ifdef VDW_MCP23017_DEBUG_ENABLED
+		Serial.printlnf("Set Interrupt :\n\tPin: %d",pin);
+	#endif
+
+	bool returnVal = false;
+
+	// Determine the port
+	PORT port = getPort(pin);
+	#ifdef VDW_MCP23017_DEBUG_ENABLED
+		Serial.printlnf("\tPORT: %d", port);
+	#endif
+
+	// Determine if the pin is an INPUT (Can't have interrupt on OUTPUT)
+	if(bitRead(_reg[port].IODIR, pin%8) == 0){
+		#ifdef VDW_MCP23017_DEBUG_ENABLED
+			Serial.printlnf("\tPin is OUTPUT");
+		#endif
+		return false;
+	}
+
+	// Determine if requested INTCON setting different from current
+    if(pinShouldChange(pin, _reg[port].INTCON, (mode != CHANGE))){
+		#ifdef VDW_MCP23017_DEBUG_ENABLED
+			Serial.printlnf("\tUpdate INTON");
+		#endif
+		_reg[port].INTCON = bitWrite(_reg[port].INTCON, pin%8, (mode != CHANGE));
+		bitSet(_reg[port].writeReg, INTCON);
+		_writeRequested = true;
+		returnVal = true;
+    }
+	#ifdef VDW_MCP23017_DEBUG_ENABLED
+		else Serial.printlnf("\tNO INTCON CHANGE", port);
+	#endif
+
+	// Determine if requested DEFVAL setting different from current
+	if(pinShouldChange(pin, _reg[port].DEFVAL, (mode == FALLING))){
+		#ifdef VDW_MCP23017_DEBUG_ENABLED
+			Serial.printlnf("\tUpdate DEFVAL");
+		#endif
+		_reg[port].DEFVAL = bitWrite(_reg[port].DEFVAL, pin%8, (mode == FALLING));
+		bitSet(_reg[port].writeReg, DEFVAL);
+		_writeRequested = true;
+		returnVal = true;
+    }
+	#ifdef VDW_MCP23017_DEBUG_ENABLED
+		else Serial.printlnf("\tNO DEFVAL CHANGE", port);
+	#endif
+
+	// Determine if requested GPINTEN setting different from current
+	if(pinShouldChange(pin, _reg[port].GPINTEN, 1)){
+		#ifdef VDW_MCP23017_DEBUG_ENABLED
+			Serial.printlnf("\tUpdate GPINTEN");
+		#endif
+		_reg[port].GPINTEN = bitWrite(_reg[port].GPINTEN, pin%8, 1);
+		bitSet(_reg[port].writeReg, GPINTEN);
+		_writeRequested = true;
+		returnVal = true;
+    }
+	#ifdef VDW_MCP23017_DEBUG_ENABLED
+		else Serial.printlnf("\tNO GPINTEN CHANGE", port);
+	#endif
+
+	return returnVal;
 }
 
 
@@ -157,13 +293,26 @@ void VDW_MCP23017::update(){
 
 	static uint8_t attemptsMade = 0;
     // Check for Interrupts
-	if(_interrupt || digitalRead(_interruptPin)){
+	Serial.printlnf("Interrupt Pin: %d", digitalRead(_interruptPin));
+	if(_interrupt || detectInterrupt()){
 		#if VDW_MCP23017_DEBUG_ENABLED
-			Serial.println("Interrupt Detected:");
+			Serial.printlnf("INTERRUPT DETECTED:\n\tInt Pin: %d\n\tInt Pin Value: %d", _interruptPin, digitalRead(_interruptPin));
 		#endif
+		int16_t gpioA = readRegister(MCP23017_GPIO[PORTA], 1);
+		int16_t gpioB = readRegister(MCP23017_GPIO[PORTB], 1);
+
+		if(gpioA < 0 || gpioB < 0){
+			#if VDW_MCP23017_DEBUG_ENABLED
+				Serial.printlnf("GPIO Read Failed: %d, %d",gpioA, gpioB);
+			#endif
+		} else {
+			_reg[PORTA].GPIO = gpioA;
+			_reg[PORTB].GPIO = gpioB;
+		}
 	}
 
     // Read all Inputs
+	if(_interruptMode) _readRequested = false;
 	if(_readRequested){
 		int16_t gpioA = readRegister(MCP23017_GPIO[PORTA], 1);
 		int16_t gpioB = readRegister(MCP23017_GPIO[PORTB], 1);

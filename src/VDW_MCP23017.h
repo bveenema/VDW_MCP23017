@@ -32,7 +32,7 @@ enum {
 
 class VDW_MCP23017{
     public:
-        VDW_MCP23017(uint8_t addr = 0x20, uint8_t interruptPin = 0)
+        VDW_MCP23017(uint8_t addr = 0x20, uint8_t interruptPin = 0xFF)
             : _addr(addr)
             , _interruptPin(interruptPin) {}
 
@@ -54,12 +54,12 @@ class VDW_MCP23017{
         // Set the mode (INPUT, OUTPUT) and enable/disable the pullup of the pin
         // Checks the stored (local) mode of the pin and only requests a change if different
         // waits until the next update() call to change the mode of the pin
-        bool setMode(uint8_t pin, bool mode, bool pullup = 0);
+        bool setMode(uint8_t pin, bool mode, bool pullup = false);
 
         // Set the mode (INPUT, OUTPUT, INPUT_PULLDOWN) of the pin
         // does the same as setMode(), but does not wait for update() function.
         // Should be used sparingly to avoid excessive I2C calls
-        bool setModeNow(uint8_t pin, bool mode, bool pullup = 0);
+        bool setModeNow(uint8_t pin, bool mode, bool pullup = false);
 
         // Update the direction (Hi/LOW) of the pin.
         // checks the stored (local) direction of the pin and only requests a write if different.
@@ -96,8 +96,16 @@ class VDW_MCP23017{
             _interruptMode = enable;
         }
 
+        // Setup Interrupt for a pin (CHANGE, FALLING, RISING) ==> Uses Particle/Wiring enums for mode
+        // Checks the stored (local) register and only requests a change if required.  Checks to make sure pin is input.
+        // Waits until next update() call to change the interrup
         bool setInterrupt(uint8_t pin, uint8_t mode);
 
+        // Setup Interrupt for a pin (CHANGE, FALLING, RISING) ==> Uses Particle/Wiring enums for mode
+        // Does the same as setInterrupt, but does not wait for update(). Use sparingly to avoid excessive I2C calls
+        bool setInterruptNow(uint8_t pin, uint8_t mode);
+
+        // Turns of the interrupt for the given pin
         bool disableInterrupt(uint8_t pin);
 
         // Signals the update() loop that an interrupt was recieved
@@ -140,6 +148,19 @@ class VDW_MCP23017{
 
         // returns true if the new setting does not match the current setting of the pin
         bool pinShouldChange(uint8_t pin, uint8_t reg, bool newState);
+
+        // returns true if the interrupt pin is triggered
+        bool detectInterrupt(){
+            // if object was not supplied with an interrupt pin, return false
+            if(_interruptPin == 0xFF) return false;
+
+            // read the interrupt pin
+            bool intValue = digitalRead(_interruptPin);
+
+            // If open drain output is set or Interrupt Polarity is cleared intValue is LOW when interrupt is triggered
+            if(bitRead(_regIOCON, ODR) || !bitRead(_regIOCON, INTPOL)) return !intValue; 
+            else return intValue;
+        }
 
         // Device Settings
         uint8_t _addr = 0x20;
