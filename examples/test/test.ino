@@ -434,7 +434,7 @@ void loop() {
 
         // Configure interrupt mode
         IO_EXP_1.configureInterrupts(1, 0, 1);
-        IO_EXP_1.enableInterruptMode();
+        // IO_EXP_1.enableInterruptMode();
 
         // Set Photon Test Pin low
         digitalWrite(PHOTON_TEST_PIN, LOW);
@@ -447,7 +447,7 @@ void loop() {
         if(!enabledInterrupt && (millis() - testTimer > 200)){
           // Set PHOTON_TEST_PIN high, then enable interrupts
           digitalWrite(PHOTON_TEST_PIN, HIGH);
-          IO_EXP_1.setInterrupt(IOEXP_TEST_PIN, CHANGE);
+          IO_EXP_1.setInterrupt(IOEXP_TEST_PIN, FALLING);
           enabledInterrupt = true;
         }
 
@@ -458,7 +458,11 @@ void loop() {
           interruptTriggered = true;
         }
 
-        if( IO_EXP_1.readPin(IOEXP_TEST_PIN) == 0 ){
+        if(millis() - testTimer > 600){
+          digitalWrite(PHOTON_TEST_PIN, HIGH);
+        }
+
+        if( false ){
           if(interruptTriggered){
             Serial.println("Success");
             runTest = true;
