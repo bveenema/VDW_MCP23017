@@ -45,6 +45,10 @@ class VDW_MCP23017{
             // Initialize Registers
             for(uint8_t i=0; i<2; i++){
                 writeRegister(MCP23017_IODIR[i], _reg[i].IODIR);
+                writeRegister(MCP23017_IPOL[i], _reg[i].IPOL);
+                writeRegister(MCP23017_GPINTEN[i], _reg[i].GPINTEN);
+                writeRegister(MCP23017_DEFVAL[i], _reg[i].DEFVAL);
+                writeRegister(MCP23017_INTCON[i], _reg[i].INTCON);
                 writeRegister(MCP23017_GPPU[i], _reg[i].GPPU);
                 writeRegister(MCP23017_GPIO[i], _reg[i].GPIO);
             }
@@ -140,11 +144,6 @@ class VDW_MCP23017{
         int16_t readRegister(uint8_t reg, uint8_t bytes=1);
         bool writeRegister(uint8_t reg, uint8_t data);
         PORT getPort(uint8_t pin);
-
-        // uint8_t bitRead(uint8_t value, uint8_t bit) { return ((value) >> (bit)) & 0x01; }
-        // uint8_t bitSet(uint8_t value, uint8_t bit) { return (value) |= (1UL << (bit)); }
-        // uint8_t bitClear(uint8_t value, uint8_t bit) { return (value) &= ~(1UL << (bit)); }
-        // uint8_t bitWrite(uint8_t value, uint8_t bit, bool bitvalue) { return bitvalue ? bitSet(value, bit) : bitClear(value, bit); }
 
         // returns true if the new setting does not match the current setting of the pin
         bool pinShouldChange(uint8_t pin, uint8_t reg, bool newState);

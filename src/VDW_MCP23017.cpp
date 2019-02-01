@@ -293,10 +293,9 @@ void VDW_MCP23017::update(){
 
 	static uint8_t attemptsMade = 0;
     // Check for Interrupts
-	Serial.printlnf("Interrupt Pin: %d", digitalRead(_interruptPin));
 	if(_interrupt || detectInterrupt()){
 		#if VDW_MCP23017_DEBUG_ENABLED
-			Serial.printlnf("INTERRUPT DETECTED:\n\tInt Pin: %d\n\tInt Pin Value: %d", _interruptPin, digitalRead(_interruptPin));
+			Serial.printlnf("INTERRUPT DETECTED:\n\tInt Pin: %d\n\tInt Pin Value: %d\n\t_interrupt: %d", _interruptPin, digitalRead(_interruptPin),_interrupt);
 		#endif
 		int16_t gpioA = readRegister(MCP23017_GPIO[PORTA], 1);
 		int16_t gpioB = readRegister(MCP23017_GPIO[PORTB], 1);
@@ -382,7 +381,12 @@ int16_t VDW_MCP23017::readRegister(uint8_t reg, uint8_t bytes){
 	Wire.endTransmission();
 	numBytesReceived = Wire.requestFrom(_addr, bytes);
 	// Return bytes if they were received, otherwise, return -1
-	if(numBytesReceived > 0) return Wire.read();
+	if(numBytesReceived > 0){
+		#if VDW_MCP23017_DEBUG_ENABLED
+			Serial.printlnf("Read Register:\n\tregister: %d",reg);
+		#endif
+		return Wire.read();
+	}
 	else {
 		#if VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("Read Failed: %d, %d",_addr, reg);

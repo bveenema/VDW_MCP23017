@@ -71,6 +71,12 @@ void loop() {
         printTestTitle = true;
       }
       if(!setupTest) {
+        // Reset MCP23017
+        digitalWrite(I2C_RESET_PIN, LOW);
+        delay(10);
+        digitalWrite(I2C_RESET_PIN, HIGH);
+        clearLocalRegisters(IO_EXP_1);
+
         setupTest = true;
       }
       if(!runTest) {
@@ -98,6 +104,12 @@ void loop() {
         printTestTitle = true;
       }
       if(!setupTest) {
+        // Reset MCP23017
+        digitalWrite(I2C_RESET_PIN, LOW);
+        delay(10);
+        digitalWrite(I2C_RESET_PIN, HIGH);
+        clearLocalRegisters(IO_EXP_1);
+
         setupTest = true;
       }
       if(!runTest) {
@@ -125,6 +137,12 @@ void loop() {
         printTestTitle = true;
       }
       if(!setupTest) {
+        // Reset MCP23017
+        digitalWrite(I2C_RESET_PIN, LOW);
+        delay(10);
+        digitalWrite(I2C_RESET_PIN, HIGH);
+        clearLocalRegisters(IO_EXP_1);
+
         IO_EXP_1.init();
         setupTest = true;
       }
@@ -154,6 +172,12 @@ void loop() {
         printTestTitle = true;
       }
       if(!setupTest) {
+        // Reset MCP23017
+        digitalWrite(I2C_RESET_PIN, LOW);
+        delay(10);
+        digitalWrite(I2C_RESET_PIN, HIGH);
+        clearLocalRegisters(IO_EXP_1);
+
         pinMode(PHOTON_TEST_PIN, INPUT_PULLDOWN);
         IO_EXP_1.setMode(IOEXP_TEST_PIN, OUTPUT);
         Serial.printlnf("OUTPUT value: %d, INPUT value: %d",OUTPUT, INPUT);
@@ -185,6 +209,12 @@ void loop() {
         printTestTitle = true;
       }
       if(!setupTest) {
+        // Reset MCP23017
+        digitalWrite(I2C_RESET_PIN, LOW);
+        delay(10);
+        digitalWrite(I2C_RESET_PIN, HIGH);
+        clearLocalRegisters(IO_EXP_1);
+
         pinMode(PHOTON_TEST_PIN, INPUT_PULLDOWN);
         IO_EXP_1.setMode(IOEXP_TEST_PIN, OUTPUT);
         IO_EXP_1.writePin(IOEXP_TEST_PIN, 1);
@@ -216,6 +246,12 @@ void loop() {
         printTestTitle = true;
       }
       if(!setupTest) {
+        // Reset MCP23017
+        digitalWrite(I2C_RESET_PIN, LOW);
+        delay(10);
+        digitalWrite(I2C_RESET_PIN, HIGH);
+        clearLocalRegisters(IO_EXP_1);
+
         pinMode(PHOTON_TEST_PIN, OUTPUT);
         IO_EXP_1.setMode(IOEXP_TEST_PIN, INPUT, 1);
         setupTest = true;
@@ -248,6 +284,12 @@ void loop() {
         printTestTitle = true;
       }
       if(!setupTest) {
+        // Reset MCP23017
+        digitalWrite(I2C_RESET_PIN, LOW);
+        delay(10);
+        digitalWrite(I2C_RESET_PIN, HIGH);
+        clearLocalRegisters(IO_EXP_1);
+
         pinMode(PHOTON_TEST_PIN, INPUT_PULLDOWN);
         IO_EXP_1.setMode(IOEXP_TEST_PIN, OUTPUT);
         IO_EXP_1.writePin(IOEXP_TEST_PIN, 0);
@@ -284,6 +326,12 @@ void loop() {
         printTestTitle = true;
       }
       if(!setupTest) {
+        // Reset MCP23017
+        digitalWrite(I2C_RESET_PIN, LOW);
+        delay(10);
+        digitalWrite(I2C_RESET_PIN, HIGH);
+        clearLocalRegisters(IO_EXP_1);
+
         pinMode(PHOTON_TEST_PIN, INPUT_PULLDOWN);
 
         IO_EXP_1.setMode(IOEXP_TEST_PIN, OUTPUT);
@@ -340,6 +388,7 @@ void loop() {
         digitalWrite(I2C_RESET_PIN, LOW);
         delay(10);
         digitalWrite(I2C_RESET_PIN, HIGH);
+        clearLocalRegisters(IO_EXP_1);
         
         IO_EXP_1.configureInterrupts();
         setupTest = true;
@@ -374,6 +423,7 @@ void loop() {
         digitalWrite(I2C_RESET_PIN, LOW);
         delay(10);
         digitalWrite(I2C_RESET_PIN, HIGH);
+        clearLocalRegisters(IO_EXP_1);
         
         IO_EXP_1.configureInterrupts(1, 0, 1);
         IO_EXP_1.setMode(IOEXP_TEST_PIN, INPUT);
@@ -425,6 +475,7 @@ void loop() {
         digitalWrite(I2C_RESET_PIN, LOW);
         delay(10);
         digitalWrite(I2C_RESET_PIN, HIGH);
+        clearLocalRegisters(IO_EXP_1);
 
         // Make sure IOEXP_TEST_PIN is HIGH
         pinMode(PHOTON_TEST_PIN, OUTPUT);
@@ -434,7 +485,7 @@ void loop() {
 
         // Configure interrupt mode
         IO_EXP_1.configureInterrupts(1, 0, 1);
-        // IO_EXP_1.enableInterruptMode();
+        IO_EXP_1.enableInterruptMode();
 
         // Set Photon Test Pin low
         digitalWrite(PHOTON_TEST_PIN, LOW);
@@ -447,22 +498,18 @@ void loop() {
         if(!enabledInterrupt && (millis() - testTimer > 200)){
           // Set PHOTON_TEST_PIN high, then enable interrupts
           digitalWrite(PHOTON_TEST_PIN, HIGH);
-          IO_EXP_1.setInterrupt(IOEXP_TEST_PIN, FALLING);
+          IO_EXP_1.setInterrupt(IOEXP_TEST_PIN, CHANGE);
           enabledInterrupt = true;
         }
 
         static bool interruptTriggered = false;
-        if(millis() - testTimer > 400){
+        if(!interruptTriggered && millis() - testTimer > 400){
           // Change PHOTON_TEST_PIN state to trigger interrupt
           digitalWrite(PHOTON_TEST_PIN, LOW);
           interruptTriggered = true;
         }
 
-        if(millis() - testTimer > 600){
-          digitalWrite(PHOTON_TEST_PIN, HIGH);
-        }
-
-        if( false ){
+        if( IO_EXP_1.readPin(IOEXP_TEST_PIN) == 0 ){
           if(interruptTriggered){
             Serial.println("Success");
             runTest = true;
@@ -496,4 +543,23 @@ void loop() {
       
   }
 
+}
+
+void clearLocalRegisters(VDW_MCP23017 &ioExp){
+  Serial.printlnf("Before Clear: %d", ioExp._reg[0].GPINTEN);
+  for(uint8_t i=0; i<2; i++){
+    ioExp._reg[i].IODIR = 0xFF;
+    ioExp._reg[i].IPOL = 0x00;
+    ioExp._reg[i].GPINTEN = 0x00;
+    ioExp._reg[i].INTCON = 0x00;
+    ioExp._reg[i].GPPU = 0x00;
+    ioExp._reg[i].INTF = 0x00;
+    ioExp._reg[i].INTCAP = 0x00;
+    ioExp._reg[i].GPIO = 0x00;
+    ioExp._reg[i].OLAT = 0x00;
+    ioExp._reg[i].writeReg = 0x0000;
+  }
+  ioExp._regIOCON = 0x00;
+
+  Serial.printlnf("After Clear: %d", ioExp._reg[0].GPINTEN);
 }
