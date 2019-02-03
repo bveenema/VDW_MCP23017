@@ -210,8 +210,8 @@ bool VDW_MCP23017::readPinNow(uint8_t pin){
 		bool value = bitRead(_reg[port].GPIO, pin%8);
 		Serial.printlnf("\tValue: %d",value);
 		return value;
-	#elif
-		_reg[port].GPIO = readRegister(MCP23017_GPIO[port], 1)
+	#else
+		_reg[port].GPIO = readRegister(MCP23017_GPIO[port], 1);
 		return bitRead(_reg[port].GPIO, pin%8);
 	#endif
 }
