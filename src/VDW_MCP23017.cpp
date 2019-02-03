@@ -1,7 +1,7 @@
 #include "VDW_MCP23017.h"
 
 bool VDW_MCP23017::setMode(uint8_t pin, bool mode, bool pullup){
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("Set Mode:\n\tPin: %d\n\tMode: %d\n\tPull-up: %d",pin, mode, pullup);
 	#endif
 
@@ -12,13 +12,13 @@ bool VDW_MCP23017::setMode(uint8_t pin, bool mode, bool pullup){
 
 	// determine the PORT
 	PORT port = getPort(pin);
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("\tPORT: %d", port);
 	#endif
 
 	// Determine if requested mode different from current
     if(pinShouldChange(pin, _reg[port].IODIR, mode)){
-		#ifdef VDW_MCP23017_DEBUG_ENABLED
+		#if VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tRequesting Mode Change");
 		#endif
 		_reg[port].IODIR = bitWrite(_reg[port].IODIR, pin%8, mode);
@@ -26,13 +26,13 @@ bool VDW_MCP23017::setMode(uint8_t pin, bool mode, bool pullup){
         _writeRequested = true;
 		returnVal = true;
     }
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		else Serial.printlnf("\tNO Mode Change Mode:%d, Reg: %d", mode, bitRead(_reg[port].IODIR, pin%8));
 	#endif
 
 	// Determine if requested pullup different from current
     if(pinShouldChange(pin, _reg[port].GPPU, pullup)){
-		#ifdef VDW_MCP23017_DEBUG_ENABLED
+		#if VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tRequesting Pullup Change");
 		#endif
 		_reg[port].GPPU = bitWrite(_reg[port].GPPU, pin%8, pullup);
@@ -40,14 +40,14 @@ bool VDW_MCP23017::setMode(uint8_t pin, bool mode, bool pullup){
         _writeRequested = true;
 		returnVal = true;
     }
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		else Serial.printlnf("\tNO Pullup Change");
 	#endif
 	return returnVal;
 }
 
 bool VDW_MCP23017::setModeNow(uint8_t pin, bool mode, bool pullup){
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("Set Mode NOW:\n\tPin: %d\n\tMode: %d\n\tPull-up: %d",pin, mode, pullup);
 	#endif
 
@@ -58,13 +58,13 @@ bool VDW_MCP23017::setModeNow(uint8_t pin, bool mode, bool pullup){
 
 	// determine the PORT
 	PORT port = getPort(pin);
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("\tPORT: %d", port);
 	#endif
 
 	// Determine if requested mode different from current
     if(pinShouldChange(pin, _reg[port].IODIR, mode)){
-		#ifdef VDW_MCP23017_DEBUG_ENABLED
+		#if VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tRequesting Mode Change");
 		#endif
 		_reg[port].IODIR = bitWrite(_reg[port].IODIR, pin%8, mode);
@@ -75,14 +75,14 @@ bool VDW_MCP23017::setModeNow(uint8_t pin, bool mode, bool pullup){
 			_writeRequested = true;
 		}
     }
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		else Serial.printlnf("\tNO Mode Change Mode:%d, Reg: %d", mode, bitRead(_reg[port].IODIR, pin%8));
 	#endif
 
 
 	// Determine if requested pullup different from current
     if(pinShouldChange(pin, _reg[port].GPPU, pullup)){
-		#ifdef VDW_MCP23017_DEBUG_ENABLED
+		#if VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tRequesting Pullup Change");
 		#endif
 		_reg[port].GPPU = bitWrite(_reg[port].GPPU, pin%8, pullup);
@@ -93,26 +93,26 @@ bool VDW_MCP23017::setModeNow(uint8_t pin, bool mode, bool pullup){
         	_writeRequested = true;
 		}
     }
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		else Serial.printlnf("\tNO Pullup Change");
 	#endif
 	return returnVal;
 }
 
 bool VDW_MCP23017::writePin(uint8_t pin, bool dir){
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("Write Pin:\n\tPin: %d\n\tDir: %d",pin, dir);
 	#endif
 
 	// determine the PORT
 	PORT port = getPort(pin);
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("\tPORT: %d", port);
 	#endif
 
 	// Determine if the pin is an OUTPUT (Can't write an INPUT)
 	if(bitRead(_reg[port].IODIR, pin%8) && bitRead(_reg[port].IODIR, pin%8)){
-		#ifdef VDW_MCP23017_DEBUG_ENABLED
+		#if VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tPin is INPUT: %d, %d",bitRead(_reg[port].IODIR, pin%8));
 		#endif
 		return false;
@@ -120,7 +120,7 @@ bool VDW_MCP23017::writePin(uint8_t pin, bool dir){
 
 	// Determine if requested setting different from current
     if(pinShouldChange(pin, _reg[port].OLAT, dir)){
-		#ifdef VDW_MCP23017_DEBUG_ENABLED
+		#if VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tRequesting Change");
 		#endif
 		_reg[port].OLAT = bitWrite(_reg[port].OLAT, pin%8, dir);
@@ -128,26 +128,26 @@ bool VDW_MCP23017::writePin(uint8_t pin, bool dir){
         _writeRequested = true;
 		return true;
     }
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		else Serial.printlnf("\tNO CHANGE", port);
 	#endif
 	return false;
 }
 
 bool VDW_MCP23017::writePinNow(uint8_t pin, bool dir){
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("Write Pin NOW:\n\tPin: %d\n\tDir: %d",pin, dir);
 	#endif
 
 	// determine the PORT
 	PORT port = getPort(pin);
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("\tPORT: %d", port);
 	#endif
 
 	// Determine if the pin is an output (Can't write an input)
 	if(bitRead(_reg[port].IODIR, pin%8) == 1){
-		#ifdef VDW_MCP23017_DEBUG_ENABLED
+		#if VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tPin is INPUT");
 		#endif
 		return false;
@@ -155,7 +155,7 @@ bool VDW_MCP23017::writePinNow(uint8_t pin, bool dir){
 
 	// Determine if requested setting different from current
     if(pinShouldChange(pin, _reg[port].OLAT, dir)){
-		#ifdef VDW_MCP23017_DEBUG_ENABLED
+		#if VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tWriting Pin");
 		#endif
 		_reg[port].OLAT = bitWrite(_reg[port].OLAT, pin%8, dir);
@@ -167,45 +167,45 @@ bool VDW_MCP23017::writePinNow(uint8_t pin, bool dir){
 			return false;
 		}
     }
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		else Serial.printlnf("\tNO CHANGE", port);
 	#endif
 	return false;
 }
 
 bool VDW_MCP23017::readPin(uint8_t pin){
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("Read Pin :\n\tPin: %d",pin);
 	#endif
 
 	// Determine the port
 	PORT port = getPort(pin);
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("\tPORT: %d", port);
 	#endif
 
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		bool value = bitRead(_reg[port].GPIO, pin%8);
 		Serial.printlnf("\tValue: %d",value);
 		return value;
-	#elif
+	#else
 		return bitRead(_reg[port].GPIO, pin%8);
 	#endif
 }
 
 bool VDW_MCP23017::readPinNow(uint8_t pin){
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("Read Pin NOW:\n\tPin: %d",pin);
 	#endif
 
 	// Determine the port
 	PORT port = getPort(pin);
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("\tPORT: %d", port);
 	#endif
 
 	// Get the value of the pin
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		_reg[port].GPIO = readRegister(MCP23017_GPIO[port], 1);
 		bool value = bitRead(_reg[port].GPIO, pin%8);
 		Serial.printlnf("\tValue: %d",value);
@@ -217,7 +217,7 @@ bool VDW_MCP23017::readPinNow(uint8_t pin){
 }
 
 bool VDW_MCP23017::setInterrupt(uint8_t pin, uint8_t mode){
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("Set Interrupt :\n\tPin: %d",pin);
 	#endif
 
@@ -225,13 +225,13 @@ bool VDW_MCP23017::setInterrupt(uint8_t pin, uint8_t mode){
 
 	// Determine the port
 	PORT port = getPort(pin);
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		Serial.printlnf("\tPORT: %d", port);
 	#endif
 
 	// Determine if the pin is an INPUT (Can't have interrupt on OUTPUT)
 	if(bitRead(_reg[port].IODIR, pin%8) == 0){
-		#ifdef VDW_MCP23017_DEBUG_ENABLED
+		#if VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tPin is OUTPUT");
 		#endif
 		return false;
@@ -239,7 +239,7 @@ bool VDW_MCP23017::setInterrupt(uint8_t pin, uint8_t mode){
 
 	// Determine if requested INTCON setting different from current
     if(pinShouldChange(pin, _reg[port].INTCON, (mode != CHANGE))){
-		#ifdef VDW_MCP23017_DEBUG_ENABLED
+		#if VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tUpdate INTON");
 		#endif
 		_reg[port].INTCON = bitWrite(_reg[port].INTCON, pin%8, (mode != CHANGE));
@@ -247,13 +247,13 @@ bool VDW_MCP23017::setInterrupt(uint8_t pin, uint8_t mode){
 		_writeRequested = true;
 		returnVal = true;
     }
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		else Serial.printlnf("\tNO INTCON CHANGE", port);
 	#endif
 
 	// Determine if requested DEFVAL setting different from current
 	if(pinShouldChange(pin, _reg[port].DEFVAL, (mode == FALLING))){
-		#ifdef VDW_MCP23017_DEBUG_ENABLED
+		#if VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tUpdate DEFVAL");
 		#endif
 		_reg[port].DEFVAL = bitWrite(_reg[port].DEFVAL, pin%8, (mode == FALLING));
@@ -261,13 +261,13 @@ bool VDW_MCP23017::setInterrupt(uint8_t pin, uint8_t mode){
 		_writeRequested = true;
 		returnVal = true;
     }
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		else Serial.printlnf("\tNO DEFVAL CHANGE", port);
 	#endif
 
 	// Determine if requested GPINTEN setting different from current
 	if(pinShouldChange(pin, _reg[port].GPINTEN, 1)){
-		#ifdef VDW_MCP23017_DEBUG_ENABLED
+		#if VDW_MCP23017_DEBUG_ENABLED
 			Serial.printlnf("\tUpdate GPINTEN");
 		#endif
 		_reg[port].GPINTEN = bitWrite(_reg[port].GPINTEN, pin%8, 1);
@@ -275,7 +275,7 @@ bool VDW_MCP23017::setInterrupt(uint8_t pin, uint8_t mode){
 		_writeRequested = true;
 		returnVal = true;
     }
-	#ifdef VDW_MCP23017_DEBUG_ENABLED
+	#if VDW_MCP23017_DEBUG_ENABLED
 		else Serial.printlnf("\tNO GPINTEN CHANGE", port);
 	#endif
 
