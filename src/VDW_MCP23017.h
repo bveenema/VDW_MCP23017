@@ -3,8 +3,8 @@
 
 #include "Particle.h"
 
-#define VDW_MCP23017_DEBUG_ENABLED 1
-#define VDW_MCP23017_LOOP_TIMER_ENABLED 1
+#define VDW_MCP23017_DEBUG_ENABLED 0
+#define VDW_MCP23017_LOOP_TIMER_ENABLED 0
 
 #define bitRead(value, bit) (((value) >> (bit)) & 0x01)
 #define bitSet(value, bit) ((value) |= (1UL << (bit)))
