@@ -37,6 +37,9 @@ class VDW_MCP23017{
             , _interruptPin(interruptPin) {}
 
         void init(){
+            // Setup Interupt Pin if supplied
+            if(_interruptPin != 0xFF) pinMode(_interruptPin, INPUT);
+
             // Setup I2C
             if (!Wire.isEnabled()) {
                 Wire.begin();
@@ -154,7 +157,7 @@ class VDW_MCP23017{
             if(_interruptPin == 0xFF) return false;
 
             // read the interrupt pin
-            bool intValue = digitalRead(_interruptPin);
+            bool intValue = pinReadFast(_interruptPin);
 
             // If open drain output is set or Interrupt Polarity is cleared intValue is LOW when interrupt is triggered
             if(bitRead(_regIOCON, ODR) || !bitRead(_regIOCON, INTPOL)) return !intValue; 
