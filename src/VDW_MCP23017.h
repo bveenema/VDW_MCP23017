@@ -139,7 +139,7 @@ class VDW_MCP23017{
         private:
     #endif
 
-        typedef enum PORT{
+        enum PORT{
             PORTA,
             PORTB,
         };
